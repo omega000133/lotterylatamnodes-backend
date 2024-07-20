@@ -75,5 +75,3 @@ save_delegators_task.delay()
 # O ejecuta la tarea de manera síncrona
 save_delegators_task.apply()
 ```
-
-¡Y eso es todo! Ahora tienes tu proyecto configurado y listo para usar.
