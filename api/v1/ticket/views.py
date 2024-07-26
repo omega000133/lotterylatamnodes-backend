@@ -42,7 +42,7 @@ class CheckAndUpdateAddress(APIView):
 
         # Calculate the number of tickets that can be purchased`
         if latest_jackpot.ticket_cost > 0:
-            max_tickets = int(delegator.balance // latest_jackpot.ticket_cost)
+            max_tickets = int(delegator.last_week_balance // latest_jackpot.ticket_cost)
         else:
             max_tickets = 0
 
@@ -54,7 +54,7 @@ class CheckAndUpdateAddress(APIView):
         participant, created = Participant.objects.get_or_create(
             address=delegator.address,
             defaults={
-                'balance': delegator.balance,
+                'balance': delegator.last_week_balance,
                 'is_active': False
             }
         )
@@ -74,7 +74,7 @@ class CheckAndUpdateAddress(APIView):
     @transaction.atomic
     def assign_tickets(self, participant, max_tickets):
         # Acquire a lock on the rows to be updated
-        available_tickets = Ticket.objects.filter(address__isnull=True).select_for_update(skip_locked=True)[
+        available_tickets = Ticket.objects.filter(address__isnull=True).order_by("?").select_for_update(skip_locked=True)[
                             :max_tickets]
 
         if len(available_tickets) < max_tickets:
@@ -98,7 +98,7 @@ class SummaryView(APIView):
         # Get the latest jackpot
         latest_jackpot = Jackpot.objects.order_by('-draw_date').filter(is_active=True).first()
         if latest_jackpot:
-            data['latest_jackpot_amount'] = latest_jackpot.amount
+            data['latest_jackpot_amount'] = latest_jackpot.current_reward
         else:
             data['latest_jackpot_amount'] = 'No jackpot available'
 
