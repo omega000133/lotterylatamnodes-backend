@@ -6,6 +6,8 @@ from django.db.models.signals import post_save
 from django.db.models import Sum
 from django.dispatch import receiver
 from requests.sessions import Session
+from .utils import get_node_reward
+
 
 
 
@@ -17,6 +19,17 @@ def generate_hash(length=4):
 @receiver(post_save, sender=Jackpot)
 def create_ticket_from_jackpot(sender, instance, created, **kwargs):
     if created:
+        current_reward = get_node_reward()
+        previous_jackpots = Jackpot.objects.all().order_by("created_at")
+        if len(previous_jackpots) > 1:
+            previous_total_reward = previous_jackpots.first().total_reward
+            instance.current_reward = abs(float(previous_total_reward) - current_reward)
+        else:
+            instance.current_reward = current_reward
+        instance.total_reward = current_reward
+        
+        instance.save()
+
         # Delete all existing tickets
         Ticket.objects.all().delete()
         
@@ -27,7 +40,7 @@ def create_ticket_from_jackpot(sender, instance, created, **kwargs):
         if last_week_total_balance is None:
             last_week_total_balance = 0
             
-        total_ticket_count = int(last_week_total_balance // instance.ticket_cost) 
+        total_ticket_count = int(float(last_week_total_balance) // float(instance.ticket_cost))
         # Create the required number of tickets
         for _ in range(total_ticket_count):
             while True:

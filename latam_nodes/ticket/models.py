@@ -3,7 +3,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 from latam_nodes.base.models import BaseModel
-from .utils import get_node_reward
 from django.db import models
 
 
@@ -59,17 +58,6 @@ class Jackpot(BaseModel):
 
     def __str__(self):
         return f'{self.ticket_cost} - {self.draw_date}'
-    
-    def save(self, *args, **kwargs) -> None:
-        current_reward = get_node_reward()
-        previous_jackpots = Jackpot.objects.all().order_by("-created_at")
-        if len(previous_jackpots) > 0:
-            previous_total_reward = previous_jackpots[0].total_reward
-            self.current_reward = abs(float(previous_total_reward) - current_reward)
-        else:
-            self.current_reward = current_reward
-        self.total_reward = current_reward
-        return super(Jackpot, self).save(*args, **kwargs)
 
 
 class Winner(BaseModel):

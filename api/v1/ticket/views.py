@@ -42,7 +42,7 @@ class CheckAndUpdateAddress(APIView):
 
         # Calculate the number of tickets that can be purchased`
         if latest_jackpot.ticket_cost > 0:
-            max_tickets = int(delegator.last_week_balance // latest_jackpot.ticket_cost)
+            max_tickets = float(delegator.last_week_balance) // float(latest_jackpot.ticket_cost)
         else:
             max_tickets = 0
 

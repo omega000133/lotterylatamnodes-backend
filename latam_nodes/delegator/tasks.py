@@ -97,7 +97,7 @@ def fetch_latest_block_data():
     # url = "https://rpc-celestia-1.latamnodes.org/block"
     url = "https://rpc-celestia.mzonder.com/block"
     closest_block = None
-    closest_time_diff = timedelta.max
+    closest_time_diff = timedelta.max.total_seconds()
 
     with Session() as session:
         start_time = datetime.now(timezone.utc)  # Asegurar que start_time es aware en UTC
@@ -109,9 +109,7 @@ def fetch_latest_block_data():
                 data = response.json()
 
                 block_time_str = data['result']['block']['header']['time']
-                if '.' in block_time_str:
-                    block_time_str = block_time_str[:block_time_str.index('.') + 7] + block_time_str[
-                                                                                      block_time_str.index('+'):]
+                
                 block_time = datetime.fromisoformat(block_time_str.replace('Z', '+00:00'))
 
                 block_id = data['result']['block_id']['hash']
@@ -150,8 +148,11 @@ def check_winner_and_update_winner_model(closest_block_hash):
 
 
 def clear_tickets_and_set_participants_inactive():
-    Ticket.objects.update(address=None)
+    Ticket.objects.all().delete()
     Participant.objects.update(is_active=False)  # Set all participants as inactive
+    latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest('draw_date')
+    latest_active_jackpot.is_active = False
+    latest_active_jackpot.save()
 
 
 def switch_jackpot_status():
@@ -179,8 +180,11 @@ def save_delegators_task():
 
 @shared_task(name='check_and_save_winner_task')
 def check_and_save_winner_task():
-    closest_block_hash = fetch_latest_block_data()
-    check_winner_and_update_winner_model(closest_block_hash)
-    save_delegators_task.delay()
-    clear_tickets_and_set_participants_inactive()
     switch_jackpot_status()
+    latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest('draw_date')
+    current_time = datetime.now(timezone.utc)
+    if current_time > latest_active_jackpot.draw_date and latest_active_jackpot.is_active:
+        closest_block_hash = fetch_latest_block_data()
+        check_winner_and_update_winner_model(closest_block_hash)
+        # save_delegators_task.delay()
+        clear_tickets_and_set_participants_inactive()
