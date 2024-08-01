@@ -70,7 +70,7 @@ class CheckAndUpdateAddress(APIView):
             defaults={
                 'balance': delegator.balance,
                 'is_active': False,
-                'current_balance': current_balnce
+                'current_balance': float(current_balnce)
             }
         )
 
