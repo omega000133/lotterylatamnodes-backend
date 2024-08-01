@@ -34,7 +34,7 @@ def fetch_delegators_data(session):
             if address not in exclude_addresses:
                 delegator_data = {
                     'address': address,
-                    'total_balance': delegation["delegation"]["shares"],
+                    'balance': delegation["delegation"]["shares"],
                 }
                 delegators_data.append(delegator_data)
 
@@ -46,19 +46,11 @@ def fetch_delegators_data(session):
 
 
 def save_delegators(delegators_data):
+    delegators = [Delegator(**data) for data in delegators_data]
+
     with transaction.atomic():
-        delegators = [Delegator(**data) for data in delegators_data]
-        
-        for delegator in delegators:
-            obj, _ = Delegator.objects.get_or_create(
-                address=delegator.address,
-            )
-            obj.total_balance = delegator.total_balance
-            difference_balance = float(delegator.total_balance) - float(obj.total_balance)
-            obj.last_week_balance =  difference_balance if difference_balance > 0 else 0
-            
-            obj.save()
-    return
+        Delegator.objects.all().delete()
+        Delegator.objects.bulk_create(delegators, ignore_conflicts=True)
 
 
 def update_ticket_cost_for_latest_jackpot():
@@ -181,10 +173,13 @@ def save_delegators_task():
 @shared_task(name='check_and_save_winner_task')
 def check_and_save_winner_task():
     switch_jackpot_status()
-    latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest('draw_date')
-    current_time = datetime.now(timezone.utc)
-    if current_time > latest_active_jackpot.draw_date and latest_active_jackpot.is_active:
-        closest_block_hash = fetch_latest_block_data()
-        check_winner_and_update_winner_model(closest_block_hash)
-        # save_delegators_task.delay()
-        clear_tickets_and_set_participants_inactive()
+    try:
+        latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest('draw_date')
+        current_time = datetime.now(timezone.utc)
+        if current_time > latest_active_jackpot.draw_date and latest_active_jackpot.is_active:
+            closest_block_hash = fetch_latest_block_data()
+            check_winner_and_update_winner_model(closest_block_hash)
+            # save_delegators_task.delay()
+            clear_tickets_and_set_participants_inactive()
+    except Jackpot.DoesNotExist:
+        pass

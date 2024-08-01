@@ -13,9 +13,12 @@ import os
 from datetime import timedelta
 
 import environ
+from dotenv import load_dotenv
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 
@@ -26,8 +29,8 @@ env = environ.Env()
 SECRET_KEY = 'django-insecure-y)-yo9kp5_3lx_-8l8#*qrr41a0rsbxrw60ug@8@2sflonbxkb'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']
 
@@ -88,13 +91,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DB_USER = env.str("DB_USER", "loteria")
-# DB_USER = env.str("DB_USER", "postgres")
-DB_HOST = env.str("DB_HOST", "localhost")
-DB_PASSWORD = env.str("DB_PASSWORD", "Joaquin98*")
-DB_NAME = env.str("DB_NAME", "db_loteria_latam_nodes")
-DB_ENGINE = env.str("DB_ENGINE", "django.db.backends.postgresql")
-DB_PORT = env.str("DB_PORT", "5432")
+DB_USER = os.getenv("DB_USER", "loteria")
+# DB_USER = os.getenv("DB_USER", "postgres")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Joaquin98*")
+DB_NAME = os.getenv("DB_NAME", "db_loteria_latam_nodes")
+DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 DATABASES = {
     'default': {

@@ -31,7 +31,7 @@ class WinnerSerializer(serializers.ModelSerializer):
 class ParticipantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Participant
-        fields = ['address', 'balance', 'is_active']
+        fields = ['address', 'balance', 'is_active', 'current_balance']
 
     def create(self, validated_data):
         instance, created = Participant.objects.update_or_create(

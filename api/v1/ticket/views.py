@@ -7,9 +7,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.status import HTTP_503_SERVICE_UNAVAILABLE
 from rest_framework.views import APIView
+from requests.sessions import Session
 
 from latam_nodes.delegator.models import Delegator
 from latam_nodes.ticket.models import Winner, Participant, Jackpot, Ticket
+from latam_nodes.ticket.utils import get_node_reward
 from .serializers import WinnerSerializer, ParticipantSerializer
 from ...base.pagination import Pagination
 
@@ -42,20 +44,33 @@ class CheckAndUpdateAddress(APIView):
 
         # Calculate the number of tickets that can be purchased`
         if latest_jackpot.ticket_cost > 0:
-            max_tickets = float(delegator.last_week_balance) // float(latest_jackpot.ticket_cost)
+            max_tickets = float(delegator.balance) // float(latest_jackpot.ticket_cost)
         else:
             max_tickets = 0
 
         if max_tickets == 0:
             return Response({'message': "You can't participate as your balance doesn't allow purchasing any tickets."},
                             status=403)
+            
+        # get current delegation
+        with Session() as session:
+            try:
+                url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/validators/celestiavaloper14v4ush42xewyeuuldf6jtdz0a7pxg5fwrlumwf/delegations/{address}"
+                response = session.get(url)
+                data = response.json()
+                current_balnce = data["delegation_response"]["delegation"]["shares"]
+            except Exception as e:
+                print(e)
+                current_balnce = delegator.balance
+        
 
         # Attempt to get or create a Participant instance
         participant, created = Participant.objects.get_or_create(
             address=delegator.address,
             defaults={
-                'balance': delegator.last_week_balance,
-                'is_active': False
+                'balance': delegator.balance,
+                'is_active': False,
+                'current_balance': current_balnce
             }
         )
 
@@ -98,7 +113,7 @@ class SummaryView(APIView):
         # Get the latest jackpot
         latest_jackpot = Jackpot.objects.order_by('-draw_date').filter(is_active=True).first()
         if latest_jackpot:
-            data['latest_jackpot_amount'] = latest_jackpot.current_reward
+            data['latest_jackpot_amount'] = latest_jackpot.reward
         else:
             data['latest_jackpot_amount'] = 'No jackpot available'
 
@@ -158,7 +173,8 @@ class ParticipantStatisticsView(APIView):
         return Response({
             'balance': participant.balance,
             'ticket_cost': ticket_cost,
-            'total_tickets': total_tickets
+            'total_tickets': total_tickets,
+            'current_balance': participant.current_balance
         })
 
 

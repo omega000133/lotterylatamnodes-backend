@@ -9,6 +9,7 @@ from django.db import models
 class Participant(BaseModel):
     address = models.CharField(max_length=100, primary_key=True)
     balance = models.DecimalField(max_digits=100, decimal_places=20, null=True)
+    current_balance = models.DecimalField(max_digits=100, decimal_places=20, null=True)
 
     def __str__(self):
         return self.address
@@ -26,13 +27,7 @@ class Ticket(BaseModel):
 
 
 class Jackpot(BaseModel):
-    total_reward = models.DecimalField(
-        max_digits=100,
-        decimal_places=20,
-        validators=[MinValueValidator(0)],
-        null=True
-    )
-    current_reward = models.DecimalField(
+    reward = models.DecimalField(
         max_digits=100,
         decimal_places=20,
         validators=[MinValueValidator(0)],

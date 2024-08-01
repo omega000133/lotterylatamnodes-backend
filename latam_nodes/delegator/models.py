@@ -6,8 +6,7 @@ from django.core.validators import MinValueValidator
 
 class Delegator(models.Model):
     address = models.CharField(max_length=100, primary_key=True)
-    total_balance = models.FloatField(default=0, validators=[MinValueValidator(0)])
-    last_week_balance = models.FloatField(default=0, validators=[MinValueValidator(0)])
+    balance = models.FloatField(default=0, validators=[MinValueValidator(0)])
 
     def __str__(self):
         return self.address

@@ -9,8 +9,6 @@ from requests.sessions import Session
 from .utils import get_node_reward
 
 
-
-
 def generate_hash(length=4):
     characters = string.digits + string.ascii_uppercase
     hash_str = ''.join(random.choices(characters, k=length))
@@ -20,33 +18,29 @@ def generate_hash(length=4):
 def create_ticket_from_jackpot(sender, instance, created, **kwargs):
     if created:
         current_reward = get_node_reward()
-        previous_jackpots = Jackpot.objects.all().order_by("created_at")
-        if len(previous_jackpots) > 1:
-            previous_total_reward = previous_jackpots.first().total_reward
-            instance.current_reward = abs(float(previous_total_reward) - current_reward)
-        else:
-            instance.current_reward = current_reward
-        instance.total_reward = current_reward
+        instance.reward = current_reward
         
         instance.save()
-
-        # Delete all existing tickets
-        Ticket.objects.all().delete()
         
         # Get all delegators with a non-zero last week balance
-        delegators_have_week_balance = Delegator.objects.exclude(last_week_balance=0)
+        delegators_balance = Delegator.objects.exclude(balance=0)
         # Calculate the total balance of all such delegators
-        last_week_total_balance = delegators_have_week_balance.aggregate(total_balance=Sum('last_week_balance'))['total_balance']
-        if last_week_total_balance is None:
-            last_week_total_balance = 0
+        total_balance = delegators_balance.aggregate(total_balance=Sum('balance'))['total_balance']
+        if total_balance is None:
+            total_balance = 0
             
-        total_ticket_count = int(float(last_week_total_balance) // float(instance.ticket_cost))
+        total_ticket_count = int(float(total_balance) // float(instance.ticket_cost))
+        max_ticket_count = 36 ** 4
+        if total_ticket_count > max_ticket_count:
+            total_ticket_count = max_ticket_count
         # Create the required number of tickets
-        for _ in range(total_ticket_count):
-            while True:
-                hash = generate_hash()
-                if not Ticket.objects.filter(hash=hash).exists():
-                    Ticket.objects.create(hash=hash)
-                    break
+        unique_hashes = set()
+        while len(unique_hashes) < total_ticket_count:
+            hash = generate_hash()
+            unique_hashes.add(hash)
+                
+        Ticket.objects.all().delete()
+        tickets = [Ticket(hash=hash) for hash in unique_hashes]
+        Ticket.objects.bulk_create(tickets, ignore_conflicts=True)
         
         

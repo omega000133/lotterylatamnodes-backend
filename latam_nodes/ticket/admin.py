@@ -7,6 +7,6 @@ admin.site.register(Ticket, )
 
 @admin.register(Jackpot)
 class JackpotAdmin(admin.ModelAdmin):
-    exclude = ["total_reward", "current_reward",]
+    exclude = ["reward",]
 
 admin.site.register(Winner, )
