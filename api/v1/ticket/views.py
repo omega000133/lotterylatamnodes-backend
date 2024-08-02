@@ -40,7 +40,7 @@ class CheckAndUpdateAddress(APIView):
         # Get the most recent jackpot to determine ticket cost
         latest_jackpot = Jackpot.objects.order_by('-draw_date').filter(is_active=True).first()
         if not latest_jackpot or latest_jackpot.ticket_cost is None:
-            return Response({'message': 'The service is currently unavailable.'}, status=HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'message': 'There is currently no available jackpot, but you can participate in the lottery once the jackpot is set.'}, status=HTTP_503_SERVICE_UNAVAILABLE)
 
         # Calculate the number of tickets that can be purchased`
         if latest_jackpot.ticket_cost > 0:
@@ -49,7 +49,7 @@ class CheckAndUpdateAddress(APIView):
             max_tickets = 0
 
         if max_tickets == 0:
-            return Response({'message': "You can't participate as your balance doesn't allow purchasing any tickets."},
+            return Response({'message': "You can't participate because you haven't staked with us, or your staking amount is not enough. If you stake this week, you will be eligible to participate in the next lottery."},
                             status=403)
             
         # get current delegation
