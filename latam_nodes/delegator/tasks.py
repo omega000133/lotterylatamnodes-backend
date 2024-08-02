@@ -34,7 +34,7 @@ def fetch_delegators_data(session):
             if address not in exclude_addresses:
                 delegator_data = {
                     'address': address,
-                    'balance': delegation["delegation"]["shares"],
+                    'balance': float(delegation["delegation"]["shares"]) / 1e6,
                 }
                 delegators_data.append(delegator_data)
 

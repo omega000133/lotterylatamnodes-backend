@@ -8,7 +8,7 @@ def get_node_reward():
         
         rewards  = data.get("rewards").get("rewards")
         # return value that denom is utia
-        return float(next(item["amount"] for item in rewards if item["denom"] == "utia"))
+        return float(next(item["amount"] for item in rewards if item["denom"] == "utia")) / 1e6
     except Exception as e:
         print(e)
         return 0

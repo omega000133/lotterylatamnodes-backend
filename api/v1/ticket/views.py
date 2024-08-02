@@ -58,7 +58,7 @@ class CheckAndUpdateAddress(APIView):
                 url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/validators/celestiavaloper14v4ush42xewyeuuldf6jtdz0a7pxg5fwrlumwf/delegations/{address}"
                 response = session.get(url)
                 data = response.json()
-                current_balnce = data["delegation_response"]["delegation"]["shares"]
+                current_balnce = float(data["delegation_response"]["delegation"]["shares"]) / 1e6
             except Exception as e:
                 print(e)
                 current_balnce = delegator.balance
@@ -113,7 +113,7 @@ class SummaryView(APIView):
         # Get the latest jackpot
         latest_jackpot = Jackpot.objects.order_by('-draw_date').filter(is_active=True).first()
         if latest_jackpot:
-            data['latest_jackpot_amount'] = latest_jackpot.reward
+            data['latest_jackpot_amount'] = latest_jackpot.reward * latest_jackpot.winning_percentage / 100
         else:
             data['latest_jackpot_amount'] = 'No jackpot available'
 
