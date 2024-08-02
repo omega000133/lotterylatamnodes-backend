@@ -49,6 +49,29 @@ class CheckAndUpdateAddress(APIView):
             max_tickets = 0
 
         if max_tickets == 0:
+            with Session() as session:
+                try:
+                    url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/delegations/{address}"
+                    response = session.get(url)
+                    data = response.json()
+                    delegation_responses = data.get("delegation_responses", [])
+                    filtered_delegations = [
+                        delegation for delegation in delegation_responses
+                        if delegation["delegation"]["validator_address"] != "celestiavaloper14v4ush42xewyeuuldf6jtdz0a7pxg5fwrlumwf"
+                    ]
+                    
+                    total_balance = sum(
+                        float(delegation['balance']['amount']) for delegation in filtered_delegations
+                        if delegation['balance']['denom'] == 'utia'
+                    ) / 1e6
+                    
+                    if total_balance > 0:
+                        return Response({'message': f"You staked {total_balance} tia with other nodes,not latamNode. If you redelegate with us, you can participate in the lottery after one week"},
+                            status=403)
+                    
+                except Exception as e:
+                    print(e)
+
             return Response({'message': "You can't participate because you haven't staked with us, or your staking amount is not enough. If you stake this week, you will be eligible to participate in the next lottery."},
                             status=403)
             
