@@ -67,9 +67,10 @@ python manage.py shell
 
 ### Running task manually
 ```python
-from latam_nodes.delegator.tasks import save_delegators_task
+from latam_nodes.delegator.tasks import save_delegators_task, create_ticket
 
 save_delegators_task()
+create_ticket()
 ```
 
 
