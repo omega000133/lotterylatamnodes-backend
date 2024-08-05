@@ -1,77 +1,90 @@
-Instala las dependencias del proyecto:
+# Deployment Guide
 
+## Initial Setup
+### Install Dependencies
+Ensure you have the following installed on your system:
+- Python (3.10+)
+- pip (Python package manager)
+- Virtualenv
+
+### Clone the repo and change directory
+```bash
+git clone https://github.com/clock-workorange/LotteryLatamNodesBack.git
+cd LotteryLatamNodesBack
+```
+
+### Create a Virtual Environment and Install dependencies
+1. Create a virtual environment:
+```bash
+  python3 -m venv .venv
+```
+2. Activate the virtual environment:
+```bash
+source .venv/bin/activate
+```
+3. Install other dependencies listed in requirements
 ```bash
 pip install -r requirements/dev.txt
 ```
 
-## Crear un Superusuario
+## Configuration
+### Database Configuration
+1. Create database
+- Install postgresql on system
+- Create Database on on postgresql
+2. Change .env file configuration
+```bash
+nano .env
+DB_USER=postgres
+DB_HOST=localhost
+DB_PASSWORD=localhost_pwd
+```
 
-Ejecuta los siguientes comandos para crear un superusuario:
+## Database migration and Create super user
+### Database migration
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
 
+### Create super user
 ```bash
 python manage.py createsuperuser
 ```
 
-Sigue las instrucciones en pantalla para configurar el superusuario.
-
-## Correr el Servidor
-
-Para correr el servidor de desarrollo, utiliza el siguiente comando:
-
+## Running server
 ```bash
-python manage.py runserver
+sh start.sh
+sh celery_db.sh
+sh celery_info.sh
 ```
 
-## Configuración de Celery y Redis
-
-### Levantar el Servidor Redis
-
-En una terminal separada, ejecuta:
-
-```bash
-redis-server
-```
-
-### Iniciar el Worker de Celery
-
-En otra terminal, ejecuta:
-
-```bash
-celery -A config worker -l info
-```
-
-### Iniciar el Beat de Celery
-
-En otra terminal adicional, ejecuta:
-
-```bash
-celery -A config beat -l info
-```
-
-### Iniciar el Beat de Celery con Scheduler de Django
-
-En otra terminal adicional, ejecuta:
-
-```bash
-celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-```
-
-## Alimentar la Tabla de Delegadores
-
-Para alimentar la tabla de delegadores, abre el shell de Django y ejecuta la tarea:
-
+## Configuration default delegator data
+### Open django shell
 ```bash
 python manage.py shell
 ```
 
-Dentro del shell de Django, ejecuta:
-
+### Running task manually
 ```python
 from latam_nodes.delegator.tasks import save_delegators_task
 
-# Ejecuta la tarea de manera asíncrona
-save_delegators_task.delay()
-
-# O ejecuta la tarea de manera síncrona
-save_delegators_task.apply()
+save_delegators_task()
 ```
+
+
+# Testing Guide
+## Login admin page
+[Go to Admin page](https://app.latamnodes.org/admin/)
+```bash
+username: test
+password: testpassword
+```
+That info is from ```python manage.py createsuperuser```
+
+## Create Packpot
+### [Go to Packpot page](https://app.latamnodes.org/admin/ticket/jackpot/add/)
+### Create Packpot
+- Winning percentage: Percentage number of Reward that delegators will get
+- Ticket cost: Cost per ticket(Delegators will get `staking amount / ticket cost`'s ticket for free)
+- Draw date: The date the Lottery ends(You have to set this value after now)
