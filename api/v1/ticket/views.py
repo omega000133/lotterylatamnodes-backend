@@ -79,7 +79,7 @@ class CheckAndUpdateAddress(APIView):
                     if total_balance > 0:
                         return Response(
                             {
-                                "message": f"You staked {total_balance} tia with other nodes, not latamNode. If you redelegate with us, you can participate in the lottery after one week"
+                                "message": f"You staked {total_balance} tia with other nodes, not Latam Nodes. If you redelegate with us, you can participate in the lottery after one week"
                             },
                             status=403,
                         )
