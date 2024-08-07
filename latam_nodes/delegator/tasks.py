@@ -227,3 +227,7 @@ def create_ticket():
     # Save any remaining tickets
     if tickets:
         Ticket.objects.bulk_create(tickets)
+    try:
+        Participant.objects.update(is_active=False)
+    except Participant.DoesNotExist:
+        pass
