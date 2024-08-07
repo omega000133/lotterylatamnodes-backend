@@ -145,12 +145,19 @@ class CheckAndUpdateAddress(APIView):
                 {"message": "Not enough tickets available to assign"}, status=400
             )
 
+        batch_size = 1000
+        tickets = []
+
         # Assign tickets to the participant
         for ticket in available_tickets:
             ticket.address = participant
-
-        # Use bulk_update to save all tickets at once
-        Ticket.objects.bulk_update(available_tickets, ["address"])
+            tickets.append(ticket)
+            if len(tickets) == batch_size:
+                Ticket.objects.bulk_update(tickets, ["address"])
+                tickets = []
+        if tickets:
+            # update ticket when tickets remain
+            Ticket.objects.bulk_update(tickets, ["address"])
 
 
 class SummaryView(APIView):
