@@ -142,16 +142,16 @@ def check_winner_and_update_winner_model(closest_block_hash):
             winning_ticket.address.address if winning_ticket.address else None
         )
 
+        latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest(
+            "draw_date"
+        )
+        winner = Winner(
+            ticket_hash=winning_ticket.hash,
+            jackpot=latest_active_jackpot,
+        )
         if participant_address:
-            latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest(
-                "draw_date"
-            )
-            winner = Winner(
-                ticket_hash=winning_ticket.hash,
-                participant_address=participant_address,
-                jackpot=latest_active_jackpot,
-            )
-            winner.save()
+            winner.participant_address = participant_address
+        winner.save()
     except Ticket.DoesNotExist:
         # No winning ticket found
         pass

@@ -18,7 +18,7 @@ from .serializers import ParticipantSerializer, WinnerSerializer
 
 
 class TopWinnersList(ListAPIView):
-    queryset = Winner.objects.all().order_by("-created_at")[:3]
+    queryset = Winner.objects.filter(participant_address__isnull=False).order_by("-created_at")[:3]
     serializer_class = WinnerSerializer
     permission_classes = (AllowAny,)
 
@@ -288,3 +288,35 @@ class TicketsByAddressView(APIView):
             {"error": "No tickets found for this address or invalid address."},
             status=404,
         )
+
+
+class WinnerByAddressView(APIView):
+    permission_classes = [AllowAny]
+    pagination_class = Pagination()  # Use the existing pagination class
+
+    def get(self, request):
+        address = request.query_params.get("address")
+        if not address:
+            return Response({"error": "Address parameter is required."}, status=400)
+
+        winner_list = Winner.objects.filter(participant_address=address).order_by(
+            "-created_at"
+        )
+        paginator = Paginator(
+            winner_list, self.pagination_class.get_page_size(request)
+        )  # Use DRF to handle page size
+        page_number = request.query_params.get(
+            self.pagination_class.page_query_param, 1
+        )
+        page = paginator.get_page(page_number)
+
+        serializer = WinnerSerializer(page.object_list, many=True)
+
+        response_data = {
+            "winners": serializer.data,
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "next": page.next_page_number() if page.has_next() else None,
+            "previous": (page.previous_page_number() if page.has_previous() else None),
+        }
+        return Response(response_data)
