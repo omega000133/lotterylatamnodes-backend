@@ -332,20 +332,30 @@ class CheckAddressView(APIView):
         if not address:
             return Response({"error": "Address parameter is required."}, status=400)
 
-        try:
-            participant = Participant.objects.get(address=address)
-            serializer = ParticipantSerializer(
-                participant, data={"is_active": True}, partial=True
-            )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=200)
-            return Response(serializer.errors, status=400)
+        with Session() as session:
+            try:
+                url = f"https://api-celestia.mzonder.com/cosmos/auth/v1beta1/accounts/{address}"
+                response = session.get(url)
+                data = response.json()
+                account_responses = data.get("account", {})
 
-        except Participant.DoesNotExist:
-            return Response(
-                {
-                    "error": "You have never participated in Lotteries or you have not entered the correct address."
-                },
-                status=400,
-            )
+                if not account_responses:
+                    error_code = data.get("code")
+                    if error_code == 2:
+                        return Response(
+                            {
+                                "error": "Address is not validated address. Please check address again"
+                            },
+                            status=400,
+                        )
+
+            except Exception as e:
+                print(e)
+                return Response(
+                    {
+                        "error": "Address is not validated address. Please check address again"
+                    },
+                    status=400,
+                )
+
+        return Response(account_responses, status=200)
