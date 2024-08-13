@@ -18,7 +18,9 @@ from .serializers import ParticipantSerializer, WinnerSerializer
 
 
 class TopWinnersList(ListAPIView):
-    queryset = Winner.objects.filter(participant_address__isnull=False).order_by("-created_at")[:3]
+    queryset = Winner.objects.filter(participant_address__isnull=False).order_by(
+        "-created_at"
+    )[:3]
     serializer_class = WinnerSerializer
     permission_classes = (AllowAny,)
 
@@ -320,3 +322,30 @@ class WinnerByAddressView(APIView):
             "previous": (page.previous_page_number() if page.has_previous() else None),
         }
         return Response(response_data)
+
+
+class CheckAddressView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        address = request.query_params.get("address")
+        if not address:
+            return Response({"error": "Address parameter is required."}, status=400)
+
+        try:
+            participant = Participant.objects.get(address=address)
+            serializer = ParticipantSerializer(
+                participant, data={"is_active": True}, partial=True
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=200)
+            return Response(serializer.errors, status=400)
+
+        except Participant.DoesNotExist:
+            return Response(
+                {
+                    "error": "You have never participated in Lotteries or you have not entered the correct address."
+                },
+                status=400,
+            )

@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework import routers
 
 from api.v1.ticket.views import (
+    CheckAddressView,
     CheckAndUpdateAddress,
     JackpotCountdownView,
     ParticipantStatisticsView,
@@ -33,4 +34,5 @@ urlpatterns = [
     path(
         "winners-by-address/", WinnerByAddressView.as_view(), name="winners-by-address"
     ),
+    path("check-address/", CheckAddressView.as_view(), name="winners-by-address"),
 ]
