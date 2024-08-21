@@ -99,6 +99,7 @@ def fetch_latest_block_data():
     # url = "https://rpc-celestia-1.latamnodes.org/block"
     url = "https://rpc-celestia.mzonder.com/block"
     closest_block = None
+    closest_height = None
     closest_time_diff = timedelta.max.total_seconds()
 
     with Session() as session:
@@ -119,10 +120,12 @@ def fetch_latest_block_data():
                 )
 
                 block_id = data["result"]["block_id"]["hash"]
+                block_height = data["result"]["block"]["header"]["height"]
                 time_diff = abs((block_time - start_time).total_seconds())
 
                 if time_diff < closest_time_diff:
                     closest_block = block_id
+                    closest_height = block_height
                     closest_time_diff = time_diff
 
             except Exception as e:
@@ -131,10 +134,10 @@ def fetch_latest_block_data():
 
             time.sleep(1)  # wait for 1 second before fetching again
 
-    return closest_block
+    return closest_block, closest_height
 
 
-def check_winner_and_update_winner_model(closest_block_hash):
+def check_winner_and_update_winner_model(closest_block_hash, height):
     last_four_digits = closest_block_hash[-4:]
     try:
         winning_ticket = Ticket.objects.get(hash__endswith=last_four_digits)
@@ -148,6 +151,7 @@ def check_winner_and_update_winner_model(closest_block_hash):
         winner = Winner(
             ticket_hash=winning_ticket.hash,
             jackpot=latest_active_jackpot,
+            transaction=f"https://celestia.explorers.guru/block/{height}",
         )
         if participant_address:
             winner.participant_address = participant_address
@@ -203,8 +207,8 @@ def check_and_save_winner_task():
             current_time > latest_active_jackpot.draw_date
             and latest_active_jackpot.is_active
         ):
-            closest_block_hash = fetch_latest_block_data()
-            check_winner_and_update_winner_model(closest_block_hash)
+            closest_block_hash, height = fetch_latest_block_data()
+            check_winner_and_update_winner_model(closest_block_hash, height)
             # save_delegators_task.delay()
             clear_tickets_and_set_participants_inactive()
     except Jackpot.DoesNotExist:
@@ -288,7 +292,7 @@ def distribute_ticket():
                         Ticket.objects.bulk_update(tickets_to_update, ["address"])
                         print(len(tickets_to_update), "upated out")
                         tickets_to_update.clear()
-                    rest_tickets = rest_tickets[min(ticket_count, len(rest_tickets)): ]
+                    rest_tickets = rest_tickets[min(ticket_count, len(rest_tickets)) :]
 
             if tickets_to_update:
                 Ticket.objects.bulk_update(tickets_to_update, ["address"])

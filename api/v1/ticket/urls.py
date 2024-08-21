@@ -6,6 +6,7 @@ from api.v1.ticket.views import (
     CheckAndUpdateAddress,
     JackpotCountdownView,
     ParticipantStatisticsView,
+    RecentJackpotList,
     SummaryView,
     TicketsByAddressView,
     TopWinnersList,
@@ -34,5 +35,6 @@ urlpatterns = [
     path(
         "winners-by-address/", WinnerByAddressView.as_view(), name="winners-by-address"
     ),
-    path("check-address/", CheckAddressView.as_view(), name="winners-by-address"),
+    path("check-address/", CheckAddressView.as_view(), name="check-address"),
+    path("recent-jackpots/", RecentJackpotList.as_view(), name="recent-jackpots"),
 ]
