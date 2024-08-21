@@ -96,26 +96,12 @@ class CheckAndUpdateAddress(APIView):
                 status=403,
             )
 
-        # get current delegation
-        with Session() as session:
-            try:
-                url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/validators/celestiavaloper14v4ush42xewyeuuldf6jtdz0a7pxg5fwrlumwf/delegations/{address}"
-                response = session.get(url)
-                data = response.json()
-                current_balnce = (
-                    float(data["delegation_response"]["delegation"]["shares"]) / 1e6
-                )
-            except Exception as e:
-                print(e)
-                current_balnce = delegator.balance
-
         # Attempt to get or create a Participant instance
         participant, created = Participant.objects.get_or_create(
             address=delegator.address,
             defaults={
                 "balance": delegator.balance,
                 "is_active": False,
-                "current_balance": float(current_balnce),
             },
         )
 
@@ -245,12 +231,25 @@ class ParticipantStatisticsView(APIView):
         ticket_cost = latest_jackpot.ticket_cost if latest_jackpot else 0
         total_tickets = Ticket.objects.filter(address=participant).count()
 
+        # get current delegation
+        with Session() as session:
+            try:
+                url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/validators/celestiavaloper14v4ush42xewyeuuldf6jtdz0a7pxg5fwrlumwf/delegations/{address}"
+                response = session.get(url)
+                data = response.json()
+                current_balance = (
+                    float(data["delegation_response"]["delegation"]["shares"]) / 1e6
+                )
+            except Exception as e:
+                print(e)
+                current_balance = participant.balance
+
         return Response(
             {
                 "balance": participant.balance,
                 "ticket_cost": ticket_cost,
                 "total_tickets": total_tickets,
-                "current_balance": participant.current_balance,
+                "current_balance": current_balance,
             }
         )
 
