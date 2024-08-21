@@ -14,7 +14,7 @@ from latam_nodes.delegator.models import Delegator
 from latam_nodes.ticket.models import Jackpot, Participant, Ticket, Winner
 
 from ...base.pagination import Pagination
-from .serializers import JackpotSerializer, ParticipantSerializer, WinnerSerializer
+from .serializers import ParticipantSerializer, WinnerSerializer
 
 
 class TopWinnersList(ListAPIView):
@@ -361,8 +361,8 @@ class CheckAddressView(APIView):
 
 
 class RecentJackpotList(ListAPIView):
-    queryset = Jackpot.objects.filter(draw_date__lt=timezone.now()).order_by(
+    queryset = Winner.objects.filter(jackpot__draw_date__lt=timezone.now()).order_by(
         "-created_at"
     )[:3]
-    serializer_class = JackpotSerializer
+    serializer_class = WinnerSerializer
     permission_classes = (AllowAny,)
