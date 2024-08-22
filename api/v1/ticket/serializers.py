@@ -14,7 +14,7 @@ class JackpotSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Jackpot
-        fields = ["reward", "draw_date", "winning_percentage"]
+        fields = ["reward", "draw_date", "reward_percentage"]
 
     def get_draw_date(self, obj):
         return obj.draw_date

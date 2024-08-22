@@ -161,7 +161,7 @@ class SummaryView(APIView):
         )
         if latest_jackpot:
             data["latest_jackpot_amount"] = (
-                latest_jackpot.reward * latest_jackpot.winning_percentage / 100
+                latest_jackpot.reward * latest_jackpot.reward_percentage / 100
             )
         else:
             data["latest_jackpot_amount"] = "No jackpot available"

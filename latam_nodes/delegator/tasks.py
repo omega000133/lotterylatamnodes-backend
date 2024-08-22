@@ -76,12 +76,12 @@ def update_ticket_cost_for_latest_jackpot():
 
     # Calculate tickets to assign based on the winning percentage
     tickets_to_assign = total_number_of_tickets * (
-        latest_active_jackpot.winning_percentage / 100
+        latest_active_jackpot.reward_percentage / 100
     )
 
     # Calculate total money for tickets based on the winning percentage
     total_money_for_tickets = total_amount_of_money * (
-        latest_active_jackpot.winning_percentage / 100
+        latest_active_jackpot.reward_percentage / 100
     )
 
     # Calculate the cost per ticket

@@ -31,6 +31,12 @@ class Jackpot(BaseModel):
     reward = models.DecimalField(
         max_digits=100, decimal_places=20, validators=[MinValueValidator(0)], null=True
     )
+    reward_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        null=True,
+    )
     winning_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
