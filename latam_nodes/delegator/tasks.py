@@ -1,3 +1,4 @@
+import math
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
@@ -154,9 +155,23 @@ def check_winner_and_update_winner_model(closest_block_hash, height):
             transaction=f"https://celestia.explorers.guru/block/{height}",
         )
         if participant_address:
-            winner.participant_address = participant_address
+            total_ticket_list_for_winner = Ticket.objects.filter(
+                address__address=participant_address
+            )
+            selected_ticket_list_by_winning_percetage = total_ticket_list_for_winner[
+                : math.ceil(
+                    len(total_ticket_list_for_winner)
+                    * latest_active_jackpot.winning_percentage
+                    / 100
+                )
+            ]
+            if participant_address in [
+                ticket.address.address
+                for ticket in selected_ticket_list_by_winning_percetage
+            ]:
+                winner.participant_address = participant_address
         winner.save()
-    except Ticket.DoesNotExist:
+    except Ticket.DoesNotExist or Jackpot.DoesNotExist:
         # No winning ticket found
         pass
 
