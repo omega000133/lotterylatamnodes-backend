@@ -161,7 +161,7 @@ def check_winner_and_update_winner_model(closest_block_hash, height):
             selected_ticket_list_by_winning_percetage = total_ticket_list_for_winner[
                 : math.ceil(
                     len(total_ticket_list_for_winner)
-                    * latest_active_jackpot.winning_percentage
+                    * float(latest_active_jackpot.winning_percentage)
                     / 100
                 )
             ]
@@ -272,9 +272,9 @@ def distribute_ticket():
                 total_amount_of_money = 0  # Handle cases where no balance is available
 
             total_count = math.ceil(
-                float(
+                (
                     total_amount_of_money
-                    * latest_active_jackpot.winning_percentage
+                    * float(latest_active_jackpot.winning_percentage)
                     / 100
                 )
                 // float(latest_active_jackpot.ticket_cost)
@@ -294,9 +294,9 @@ def distribute_ticket():
                 )
                 if created or not participant.is_active:
                     ticket_count = int(
-                        float(
+                        (
                             delegator.balance
-                            * latest_active_jackpot.winning_percentage
+                            * float(latest_active_jackpot.winning_percentage)
                             / 100
                         )
                         // float(latest_active_jackpot.ticket_cost)
