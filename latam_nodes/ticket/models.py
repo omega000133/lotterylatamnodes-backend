@@ -43,6 +43,9 @@ class Jackpot(BaseModel):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         null=True,
     )
+    start_distribute_time = models.IntegerField(
+        validators=[MinValueValidator(5)], default=120
+    )
     ticket_cost = models.DecimalField(
         max_digits=10,
         decimal_places=2,

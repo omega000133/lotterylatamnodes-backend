@@ -271,7 +271,10 @@ def distribute_ticket():
             latest_active_jackpot.draw_date.astimezone(timezone.utc) - currente_time
         )
 
-        if time_delta.total_seconds() / 3600 < 3:
+        if (
+            time_delta.total_seconds() / 60
+            < latest_active_jackpot.start_distribute_time
+        ):
             total_amount_of_money = Delegator.objects.aggregate(
                 total_balance=Sum("balance")
             )["total_balance"]
