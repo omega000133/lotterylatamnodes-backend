@@ -62,7 +62,7 @@ class Jackpot(BaseModel):
 class Winner(BaseModel):
     ticket_hash = models.CharField(max_length=4, blank=True, null=True)
     participant_address = models.CharField(max_length=100, blank=True, null=True)
-    jackpot = models.ForeignKey(
+    jackpot = models.OneToOneField(
         Jackpot,
         on_delete=models.SET_NULL,
         null=True,

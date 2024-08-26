@@ -149,31 +149,19 @@ def check_winner_and_update_winner_model(closest_block_hash, height):
         latest_active_jackpot = Jackpot.objects.filter(is_active=True).latest(
             "draw_date"
         )
-        winner = Winner(
-            ticket_hash=winning_ticket.hash,
+        winner, created = Winner.objects.get_or_create(
             jackpot=latest_active_jackpot,
-            transaction=f"https://celestia.explorers.guru/block/{height}",
         )
+        if created:
+            winner.ticket_hash = winning_ticket.hash
+            winner.transaction = f"https://celestia.explorers.guru/block/{height}"
         if participant_address:
-            total_ticket_list_for_winner = Ticket.objects.filter(
-                address__address=participant_address
-            ).order_by("?")
-            selected_ticket_list_by_winning_percetage = total_ticket_list_for_winner[
-                : math.ceil(
-                    len(total_ticket_list_for_winner)
-                    * float(latest_active_jackpot.winning_percentage)
-                    / 100
-                )
-            ]
-            if participant_address in [
-                ticket.address.address
-                for ticket in selected_ticket_list_by_winning_percetage
-            ]:
-                winner.participant_address = participant_address
+            winner.participant_address = participant_address
+
         winner.save()
-    except Ticket.DoesNotExist or Jackpot.DoesNotExist:
+    except Ticket.DoesNotExist or Jackpot.DoesNotExist or Exception as e:
         # No winning ticket found
-        pass
+        print(e)
 
 
 def clear_tickets_and_set_participants_inactive():
@@ -252,6 +240,25 @@ def create_ticket():
         pass
 
 
+def update_ticket_for_distribute(ticket_count, tickets, participant):
+    tickets_to_update = []
+    batch_size = 1000
+
+    for i in range(min(ticket_count, len(tickets))):
+        tickets[i].address = participant
+        tickets_to_update.append(tickets[i])
+        if len(tickets_to_update) >= batch_size:
+            Ticket.objects.bulk_update(tickets_to_update, ["address"])
+            tickets_to_update.clear()
+
+    if tickets_to_update:
+        Ticket.objects.bulk_update(tickets_to_update, ["address"])
+
+    tickets = tickets[min(ticket_count, len(tickets)) :]
+
+    return tickets
+
+
 @shared_task(name="distribute_ticket_task")
 def distribute_ticket():
     switch_jackpot_status()
@@ -271,55 +278,67 @@ def distribute_ticket():
             if total_amount_of_money is None:
                 total_amount_of_money = 0  # Handle cases where no balance is available
 
-            total_count = math.ceil(
-                (
-                    total_amount_of_money
-                    * float(latest_active_jackpot.winning_percentage)
-                    / 100
-                )
-                // float(latest_active_jackpot.ticket_cost)
+            rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")
+            rest_tickets_count = int(
+                len(rest_tickets)
+                * float(latest_active_jackpot.winning_percentage)
+                / 100
             )
-            rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")[
-                :total_count
-            ]
+
+            rest_tickets = rest_tickets[:rest_tickets_count]
+
             delegator_list = Delegator.objects.filter(
                 balance__gte=latest_active_jackpot.ticket_cost
             ).order_by("?")
-            tickets_to_update = []
-            batch_size = 1000
 
             for delegator in delegator_list:
-                participant, created = Participant.objects.get_or_create(
+                participant, _ = Participant.objects.get_or_create(
                     address=delegator.address
                 )
-                if created or not participant.is_active:
-                    ticket_count = int(
-                        (
-                            delegator.balance
-                            * float(latest_active_jackpot.winning_percentage)
-                            / 100
-                        )
-                        // float(latest_active_jackpot.ticket_cost)
+
+                ticket_count = math.ceil(
+                    rest_tickets_count
+                    * float(delegator.balance)
+                    / float(total_amount_of_money)
+                )
+                participant.is_active = True
+                participant.balance = delegator.balance
+                participant.save()
+
+                rest_tickets = update_ticket_for_distribute(
+                    ticket_count=ticket_count,
+                    tickets=rest_tickets,
+                    participant=participant,
+                )
+                if len(rest_tickets) == 0:
+                    break
+
+            while len(rest_tickets) > 0:
+                rest_delegator_list = Delegator.objects.filter(
+                    balance__lt=latest_active_jackpot.ticket_cost, balance__gt=0
+                ).order_by("?")
+                for delegator in rest_delegator_list:
+                    participant, _ = Participant.objects.get_or_create(
+                        address=delegator.address
+                    )
+
+                    ticket_count = math.ceil(
+                        rest_tickets_count
+                        * float(delegator.balance)
+                        / float(total_amount_of_money)
                     )
                     participant.is_active = True
                     participant.balance = delegator.balance
                     participant.save()
 
-                    for i in range(min(ticket_count, len(rest_tickets))):
-                        rest_tickets[i].address = participant
-                        tickets_to_update.append(rest_tickets[i])
-                        if len(tickets_to_update) >= batch_size:
-                            Ticket.objects.bulk_update(tickets_to_update, ["address"])
-                            tickets_to_update.clear()
-                            print(len(tickets_to_update), "upated in")
+                    rest_tickets = update_ticket_for_distribute(
+                        ticket_count=ticket_count,
+                        tickets=rest_tickets,
+                        participant=participant,
+                    )
 
-                    if len(tickets_to_update) >= batch_size:
-                        Ticket.objects.bulk_update(tickets_to_update, ["address"])
-                        print(len(tickets_to_update), "upated out")
-                        tickets_to_update.clear()
-                    rest_tickets = rest_tickets[min(ticket_count, len(rest_tickets)) :]
+                    if len(rest_tickets) == 0:
+                        break
 
-            if tickets_to_update:
-                Ticket.objects.bulk_update(tickets_to_update, ["address"])
-    except Jackpot.DoesNotExist:
-        pass
+    except Exception as e:
+        print(e)
