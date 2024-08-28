@@ -276,14 +276,14 @@ def distribute_ticket():
             < latest_active_jackpot.start_distribute_time
         ):
             rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")
-            rest_tickets_count = int(
-                rest_tickets.count()
-                * float(latest_active_jackpot.winning_percentage)
-                / 100
-            )
+            total_ticket_count = Ticket.objects.count()
+            winnning_percetage = float(latest_active_jackpot.winning_percentage) / 100
+            distributed_tickets_count = total_ticket_count - rest_tickets.count()
+            
+            rest_tickets_count = 0 if (distributed_tickets_count > total_ticket_count * winnning_percetage) else int(total_ticket_count * winnning_percetage - distributed_tickets_count)
 
             rest_tickets = rest_tickets[:rest_tickets_count]
-
+            
             participant_list = Participant.objects.filter(is_active=True)
             
             total_amount_of_money = participant_list.aggregate(Sum("balance"))["balance__sum"]

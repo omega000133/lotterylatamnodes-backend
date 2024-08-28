@@ -174,9 +174,13 @@ class SummaryView(APIView):
         )["total_balance"]
         if delegate_total_balance is None:
             delegate_total_balance = 0
-        data["total_tickets"] = delegate_total_balance // int(
+            
+        total_ticket_count = Ticket.objects.count()
+        deletation_ticket_count = delegate_total_balance // int(
             latest_jackpot.ticket_cost
         )
+         
+        data["total_tickets"] = min(total_ticket_count, deletation_ticket_count)
 
         # Get tickets count for a specific participant
         if address:

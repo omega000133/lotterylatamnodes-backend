@@ -28,10 +28,11 @@ def generate_random_hash(length=4):
     return hash_str
 
 
-def generate_hash():
-    characters = string.digits + string.ascii_uppercase
-    combinations = list(itertools.product(characters, repeat=4))
-    combinations = ["".join(combination) for combination in combinations]
-    random.shuffle(combinations)
+def generate_hash(digits=4):
+    max_value = 16 ** digits
+    hex_format = f"{{:0{digits}X}}"
+    hex_hashes = [hex_format.format(i) for i in range(max_value)]
 
-    return combinations
+    random.shuffle(hex_hashes)
+
+    return hex_hashes
