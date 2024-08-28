@@ -275,12 +275,6 @@ def distribute_ticket():
             time_delta.total_seconds() / 60
             < latest_active_jackpot.start_distribute_time
         ):
-            total_amount_of_money = Delegator.objects.aggregate(
-                total_balance=Sum("balance")
-            )["total_balance"]
-            if total_amount_of_money is None:
-                total_amount_of_money = 0  # Handle cases where no balance is available
-
             rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")
             rest_tickets_count = int(
                 len(rest_tickets)
@@ -290,56 +284,29 @@ def distribute_ticket():
 
             rest_tickets = rest_tickets[:rest_tickets_count]
 
-            delegator_list = Delegator.objects.filter(
-                balance__gte=latest_active_jackpot.ticket_cost
-            ).order_by("?")
-
-            for delegator in delegator_list:
-                participant, _ = Participant.objects.get_or_create(
-                    address=delegator.address
-                )
-
-                ticket_count = math.ceil(
-                    rest_tickets_count
-                    * float(delegator.balance)
-                    / float(total_amount_of_money)
-                )
-                participant.is_active = True
-                participant.balance = delegator.balance
-                participant.save()
-
-                rest_tickets = update_ticket_for_distribute(
-                    ticket_count=ticket_count,
-                    tickets=rest_tickets,
-                    participant=participant,
-                )
-                if len(rest_tickets) == 0:
-                    break
-
+            participant_list = Participant.objects.filter(is_active=True)
+            
+            total_amount_of_money = participant_list.aggregate(
+                total_balance=Sum("balance")
+            )["total_balance"]
+            
+            if total_amount_of_money is None:
+                total_amount_of_money = 0  # Handle cases where no balance is available
+            
             while len(rest_tickets) > 0:
-                rest_delegator_list = Delegator.objects.filter(
-                    balance__lt=latest_active_jackpot.ticket_cost, balance__gt=0
-                ).order_by("?")
-                for delegator in rest_delegator_list:
-                    participant, _ = Participant.objects.get_or_create(
-                        address=delegator.address
-                    )
 
+                for participant in participant_list:
                     ticket_count = math.ceil(
                         rest_tickets_count
-                        * float(delegator.balance)
+                        * float(participant.balance)
                         / float(total_amount_of_money)
                     )
-                    participant.is_active = True
-                    participant.balance = delegator.balance
-                    participant.save()
 
                     rest_tickets = update_ticket_for_distribute(
                         ticket_count=ticket_count,
                         tickets=rest_tickets,
                         participant=participant,
                     )
-
                     if len(rest_tickets) == 0:
                         break
 
