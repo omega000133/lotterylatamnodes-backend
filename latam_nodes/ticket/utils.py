@@ -28,7 +28,7 @@ def generate_random_hash(length=4):
     return hash_str
 
 
-def generate_hash(digits=4):
+def generate_hex_hash(digits=4):
     max_value = 16 ** digits
     hex_format = f"{{:0{digits}X}}"
     hex_hashes = [hex_format.format(i) for i in range(max_value)]

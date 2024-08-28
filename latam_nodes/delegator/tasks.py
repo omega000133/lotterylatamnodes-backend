@@ -10,7 +10,7 @@ from requests.sessions import Session
 
 from latam_nodes.delegator.models import Delegator
 from latam_nodes.ticket.models import Jackpot, Participant, Ticket, Winner
-from latam_nodes.ticket.utils import generate_hash
+from latam_nodes.ticket.utils import generate_hex_hash
 
 
 def fetch_delegators_data(session):
@@ -221,7 +221,7 @@ def check_and_save_winner_task():
 @shared_task(name="create_ticket")
 def create_ticket():
     Ticket.objects.all().delete()
-    hash_list = generate_hash()
+    hash_list = generate_hex_hash()
     batch_size = 1000
     tickets = []
 
