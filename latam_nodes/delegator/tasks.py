@@ -277,7 +277,7 @@ def distribute_ticket():
         ):
             rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")
             rest_tickets_count = int(
-                len(rest_tickets)
+                rest_tickets.count()
                 * float(latest_active_jackpot.winning_percentage)
                 / 100
             )
@@ -286,15 +286,15 @@ def distribute_ticket():
 
             participant_list = Participant.objects.filter(is_active=True)
             
-            total_amount_of_money = participant_list.aggregate(
-                total_balance=Sum("balance")
-            )["total_balance"]
+            total_amount_of_money = participant_list.aggregate(Sum("balance"))["balance__sum"]
             
             if total_amount_of_money is None:
                 total_amount_of_money = 0  # Handle cases where no balance is available
             
             while len(rest_tickets) > 0:
-
+                if(participant_list.count() < 1):
+                    break
+                
                 for participant in participant_list:
                     ticket_count = math.ceil(
                         rest_tickets_count
@@ -312,3 +312,4 @@ def distribute_ticket():
 
     except Exception as e:
         print(e)
+        pass
