@@ -364,9 +364,30 @@ class CheckAddressView(APIView):
         return Response(account_responses, status=200)
 
 
-class RecentJackpotList(ListAPIView):
-    queryset = Winner.objects.filter(jackpot__draw_date__lt=timezone.now()).order_by(
-        "-created_at"
-    )[:3]
-    serializer_class = WinnerSerializer
+class RecentJackpotList(APIView):
     permission_classes = (AllowAny,)
+    pagination_class = Pagination()
+    
+    def get(self, request):
+        winner_list = Winner.objects.filter(jackpot__is_active=False).order_by(
+        "-created_at"
+    )
+        paginator = Paginator(
+            winner_list, self.pagination_class.get_page_size(request)
+        )  # Use DRF to handle page size
+        page_number = request.query_params.get(
+            self.pagination_class.page_query_param, 
+        )
+        page = paginator.get_page(page_number)
+
+        serializer = WinnerSerializer(page.object_list, many=True)
+
+        response_data = {
+            "results": serializer.data,
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "next": page.next_page_number() if page.has_next() else None,
+            "previous": (page.previous_page_number() if page.has_previous() else None),
+        }
+        return Response(response_data)
+
