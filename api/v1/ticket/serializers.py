@@ -25,7 +25,7 @@ class WinnerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Winner
-        fields = ["ticket_hash", "jackpot", "participant_address", "transaction"]
+        fields = ["ticket_hash", "closest_block_hash_date", "jackpot", "participant_address", "transaction"]
 
 
 class ParticipantSerializer(serializers.ModelSerializer):

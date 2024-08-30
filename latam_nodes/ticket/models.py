@@ -64,6 +64,7 @@ class Jackpot(BaseModel):
 
 class Winner(BaseModel):
     ticket_hash = models.CharField(max_length=4, blank=True, null=True)
+    closest_block_hash_date = models.DateTimeField(blank=True, null=True)
     participant_address = models.CharField(max_length=100, blank=True, null=True)
     jackpot = models.OneToOneField(
         Jackpot,

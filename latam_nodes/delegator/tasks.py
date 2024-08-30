@@ -96,49 +96,53 @@ def update_ticket_cost_for_latest_jackpot():
     latest_active_jackpot.save()
 
 
-def fetch_latest_block_data():
+def fetch_latest_block_data(latest_active_jackpot: Jackpot):
     # url = "https://rpc-celestia-1.latamnodes.org/block"
-    url = "https://rpc-celestia.mzonder.com/block"
-    closest_block = None
+    basic_url = "https://rpc-celestia.mzonder.com/block"
+    closest_block_hash = None
     closest_height = None
-    closest_time_diff = timedelta.max.total_seconds()
+    closest_block_date = None
+    current_time_diff = None
 
     with Session() as session:
-        start_time = datetime.now(
-            timezone.utc
-        )  # Asegurar que start_time es aware en UTC
-        end_time = start_time + timedelta(seconds=30)
-
-        while datetime.now(timezone.utc) < end_time:
+        jackpot_endtime = latest_active_jackpot.draw_date
+        url = basic_url
+        while True:
             try:
                 response = session.get(url)
                 data = response.json()
-
-                block_time_str = data["result"]["block"]["header"]["time"]
-
-                block_time = datetime.fromisoformat(
-                    block_time_str.replace("Z", "+00:00")
-                )
-
+                
                 block_id = data["result"]["block_id"]["hash"]
-                block_height = data["result"]["block"]["header"]["height"]
-                time_diff = abs((block_time - start_time).total_seconds())
+                block_height = int(data["result"]["block"]["header"]["height"])
+                block_time_str = data["result"]["block"]["header"]["time"]
+                block_time = datetime.fromisoformat(block_time_str)
 
-                if time_diff < closest_time_diff:
-                    closest_block = block_id
+                previous_block_height = block_height - 1
+                
+                previous_time_diff = abs((jackpot_endtime - block_time).total_seconds())
+                
+                if current_time_diff is None:
+                    url = f"{basic_url}?height={previous_block_height}"
+                    # print(url, data)
+                    current_time_diff = previous_time_diff
+                    continue
+                
+                if current_time_diff < previous_time_diff:
+                    closest_block_hash = block_id
                     closest_height = block_height
-                    closest_time_diff = time_diff
-
+                    closest_block_date = block_time
+                    break
+                
+                current_time_diff = previous_time_diff
+                url = f"{basic_url}?height={previous_block_height}"
             except Exception as e:
                 print(f"Error fetching block data: {e}")
-                continue
+                time.sleep(1)
 
-            time.sleep(1)  # wait for 1 second before fetching again
-
-    return closest_block, closest_height
+    return closest_block_hash, closest_height, closest_block_date
 
 
-def check_winner_and_update_winner_model(closest_block_hash, height):
+def check_winner_and_update_winner_model(closest_block_hash, height, closest_block_date):
     last_four_digits = closest_block_hash[-4:]
     try:
         winning_ticket = Ticket.objects.get(hash__endswith=last_four_digits)
@@ -155,6 +159,7 @@ def check_winner_and_update_winner_model(closest_block_hash, height):
         if created:
             winner.ticket_hash = winning_ticket.hash
             winner.transaction = f"https://celestia.explorers.guru/block/{height}"
+            winner.closest_block_hash_date = closest_block_date
         if participant_address:
             winner.participant_address = participant_address
 
@@ -210,8 +215,8 @@ def check_and_save_winner_task():
             current_time > latest_active_jackpot.draw_date
             and latest_active_jackpot.is_active
         ):
-            closest_block_hash, height = fetch_latest_block_data()
-            check_winner_and_update_winner_model(closest_block_hash, height)
+            closest_block_hash, height, closest_block_date = fetch_latest_block_data(latest_active_jackpot)
+            check_winner_and_update_winner_model(closest_block_hash, height, closest_block_date)
             # save_delegators_task.delay()
             clear_tickets_and_set_participants_inactive()
     except Jackpot.DoesNotExist:
