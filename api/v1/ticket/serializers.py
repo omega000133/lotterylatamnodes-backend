@@ -22,10 +22,14 @@ class JackpotSerializer(serializers.ModelSerializer):
 
 class WinnerSerializer(serializers.ModelSerializer):
     jackpot = JackpotSerializer(read_only=True)
+    closest_block_hash_date = serializers.SerializerMethodField()   
 
     class Meta:
         model = Winner
         fields = ["ticket_hash", "closest_block_hash_date", "jackpot", "participant_address", "transaction"]
+        
+    def get_closest_block_hash_date(self, obj):
+        return obj.closest_block_hash_date
 
 
 class ParticipantSerializer(serializers.ModelSerializer):
@@ -34,7 +38,7 @@ class ParticipantSerializer(serializers.ModelSerializer):
         fields = ["address", "balance", "is_active"]
 
     def create(self, validated_data):
-        instance, created = Participant.objects.update_or_create(
+        instance, _ = Participant.objects.update_or_create(
             address=validated_data["address"],
             defaults={"balance": validated_data.get("balance", 0)},
         )
