@@ -305,7 +305,7 @@ class WinnerByAddressView(APIView):
         if not address:
             return Response({"error": "Address parameter is required."}, status=400)
 
-        winner_list = Winner.objects.filter(participant_address=address).order_by(
+        winner_list = Winner.objects.filter(participant_address__isnull=False).order_by(
             "-created_at"
         )
         paginator = Paginator(
@@ -317,9 +317,13 @@ class WinnerByAddressView(APIView):
         page = paginator.get_page(page_number)
 
         serializer = WinnerSerializer(page.object_list, many=True)
+        response_data = [
+            {**data, "is_winner": data["participant_address"] == address}
+            for data in serializer.data
+        ]
 
         response_data = {
-            "winners": serializer.data,
+            "winners": response_data,
             "count": paginator.count,
             "total_pages": paginator.num_pages,
             "next": page.next_page_number() if page.has_next() else None,
