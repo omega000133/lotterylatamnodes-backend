@@ -108,6 +108,7 @@ class CheckAndUpdateAddress(APIView):
         # If the participant was just created or is inactive, activate and assign tickets
         if created or not participant.is_active:
             participant.is_active = True
+            participant.balance = delegator.balance
             participant.save()
             self.assign_tickets(participant, max_tickets)
 
