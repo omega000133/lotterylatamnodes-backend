@@ -95,6 +95,25 @@ class CheckAndUpdateAddress(APIView):
                 },
                 status=403,
             )
+            
+        delegators_balance = Delegator.objects.exclude(balance=0)
+            
+        delegate_total_balance = delegators_balance.aggregate(
+            total_balance=Sum("balance")
+        )["total_balance"]
+        if delegate_total_balance is None:
+            delegate_total_balance = 0
+        
+        total_available_ticket_count = delegate_total_balance // int(
+            latest_jackpot.ticket_cost
+        )
+        
+        selected_ticket_count = Ticket.objects.filter(address__isnull=False).count()
+        
+        max_tickets = min(total_available_ticket_count - selected_ticket_count, max_tickets)
+        
+        selected_tickets_by_address = Ticket.objects.filter(address=address).count()
+        max_tickets = max(max_tickets - selected_tickets_by_address, 0)
 
         # Attempt to get or create a Participant instance
         participant, created = Participant.objects.get_or_create(
