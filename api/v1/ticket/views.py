@@ -96,20 +96,8 @@ class CheckAndUpdateAddress(APIView):
                 status=403,
             )
             
-        delegators_balance = Delegator.objects.exclude(balance=0)
-            
-        delegate_total_balance = delegators_balance.aggregate(
-            total_balance=Sum("balance")
-        )["total_balance"]
-        if delegate_total_balance is None:
-            delegate_total_balance = 0
-        
-        total_available_ticket_count = delegate_total_balance // int(
-            latest_jackpot.ticket_cost
-        )
-        
+        total_available_ticket_count = Ticket.objects.count() * latest_jackpot.winning_percentage // 100
         selected_ticket_count = Ticket.objects.filter(address__isnull=False).count()
-        
         max_tickets = min(total_available_ticket_count - selected_ticket_count, max_tickets)
         
         selected_tickets_by_address = Ticket.objects.filter(address=address).count()
@@ -195,12 +183,7 @@ class SummaryView(APIView):
         if delegate_total_balance is None:
             delegate_total_balance = 0
             
-        total_ticket_count = Ticket.objects.count()
-        deletation_ticket_count = delegate_total_balance // int(
-            latest_jackpot.ticket_cost
-        )
-         
-        data["total_tickets"] = min(total_ticket_count, deletation_ticket_count)
+        data["total_tickets"] = Ticket.objects.count() * latest_jackpot.winning_percentage // 100
 
         # Get tickets count for a specific participant
         if address:
