@@ -53,6 +53,7 @@ class Jackpot(BaseModel):
         null=True,
         blank=True,
     )
+    distribute_status = models.BooleanField(default=False)
     draw_date = models.DateTimeField(default=timezone.now)
 
     def formatted_date(self):
