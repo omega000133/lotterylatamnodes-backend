@@ -103,7 +103,7 @@ class CheckAndUpdateAddress(APIView):
         selected_tickets_by_address = Ticket.objects.filter(address=address).count()
         max_tickets = max(max_tickets - selected_tickets_by_address, 0)
         
-        if latest_jackpot.distribute_status and selected_tickets_by_address == 0:
+        if latest_jackpot.distributed_status and selected_tickets_by_address == 0:
             return Response(
                 {
                     "message": "All remaining tickets have already been delegated. Please be sure to participate in the lottery earlier next time."

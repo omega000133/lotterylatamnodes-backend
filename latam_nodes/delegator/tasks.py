@@ -279,7 +279,7 @@ def distribute_ticket():
         if (
             time_delta.total_seconds() / 60
             < latest_active_jackpot.start_distribute_time
-            and not latest_active_jackpot.distribute_status
+            and not latest_active_jackpot.distributed_status
         ):
             rest_tickets = Ticket.objects.filter(address__isnull=True).order_by("?")
             distributed_tickets_count = Ticket.objects.exclude(address__isnull=True).count()
