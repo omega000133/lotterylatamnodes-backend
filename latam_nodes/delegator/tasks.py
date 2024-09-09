@@ -313,6 +313,8 @@ def distribute_ticket():
                     )
                     if len(rest_tickets) == 0:
                         break
+            latest_active_jackpot.distributed_status = True
+            latest_active_jackpot.save()
 
     except Exception as e:
         print(e)
