@@ -384,7 +384,7 @@ class RecentJackpotList(APIView):
     pagination_class = Pagination()
     
     def get(self, request):
-        winner_list = Winner.objects.filter(jackpot__is_active=False).order_by(
+        winner_list = Winner.objects.filter(jackpot__is_active=False, participant_address__isnull=True).order_by(
         "-created_at"
     )
         paginator = Paginator(
