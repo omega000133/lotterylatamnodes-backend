@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'latam_nodes.configuracion',
     'latam_nodes.ticket',
     'latam_nodes.delegator',
+    'latam_nodes.faq',
     'django_celery_beat',
 ]
 
