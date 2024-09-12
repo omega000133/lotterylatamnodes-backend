@@ -1,6 +1,7 @@
 from django.urls import path, include
 from api.v1.authentication import urls as urls_autenticacion
 from api.v1.ticket import urls as urls_tickets
+from api.v1.faq import urls as urls_faqs
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -8,6 +9,7 @@ from django.contrib import admin
 urlpatterns = [
     path('autenticacion/', include(urls_autenticacion)),
     path('ticket/', include(urls_tickets)),
+    path('faq/', include(urls_faqs)),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
