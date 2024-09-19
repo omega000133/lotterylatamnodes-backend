@@ -19,6 +19,7 @@ def fetch_delegators_data(session):
     next_key = None
     delegators_data = []
     exclude_addresses = {
+        "celestia1eauf4n38gnandag9exlqrr6yy5y4852wdsfawx",
         "celestia1ll34vjd8d7r0fef04yk6xs2y6gfn009dk34we7",
     }
 
