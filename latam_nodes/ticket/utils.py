@@ -1,4 +1,4 @@
-import itertools
+from .models import Ticket
 import random
 import string
 
@@ -36,3 +36,10 @@ def generate_hex_hash(digits=4):
     random.shuffle(hex_hashes)
 
     return hex_hashes
+
+def get_total_ticket_count():
+    try:
+        return Ticket.objects.count()
+    
+    except Ticket.DoesNotExist:
+        return 0

@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Sum
 from requests.sessions import Session
 
+from latam_nodes.delegator.utils import get_total_delegation_amount
 from latam_nodes.delegator.models import Delegator
 from latam_nodes.ticket.models import Jackpot, Participant, Ticket, Winner
 from latam_nodes.ticket.utils import generate_hex_hash
@@ -58,11 +59,7 @@ def save_delegators(delegators_data):
 
 def update_ticket_cost_for_latest_jackpot():
     # Calculate the total amount of money available
-    total_amount_of_money = Delegator.objects.aggregate(total_balance=Sum("balance"))[
-        "total_balance"
-    ]
-    if total_amount_of_money is None:
-        total_amount_of_money = 0  # Handle cases where no balance is available
+    total_amount_of_money = get_total_delegation_amount()
 
     # Calculate the total number of tickets
     total_number_of_tickets = Ticket.objects.count()
