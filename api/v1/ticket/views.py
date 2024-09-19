@@ -182,15 +182,6 @@ class SummaryView(APIView):
         else:
             data["latest_jackpot_amount"] = "No jackpot available"
 
-        # Get all delegators with a non-zero last week balance
-        delegators_balance = Delegator.objects.exclude(balance=0)
-        # Calculate the total balance of all such delegators
-        delegate_total_balance = delegators_balance.aggregate(
-            total_balance=Sum("balance")
-        )["total_balance"]
-        if delegate_total_balance is None:
-            delegate_total_balance = 0
-            
         data["total_tickets"] = Ticket.objects.count() * latest_jackpot.winning_percentage // 100
 
         # Get tickets count for a specific participant
