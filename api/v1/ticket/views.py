@@ -55,7 +55,7 @@ class CheckAndUpdateAddress(APIView):
             if max_tickets == 0:
                 return Response(
                     {
-                        "message": "You can't participate because your staking amount is not enough. If you stake this week, you will be eligible to participate in the next lottery."
+                        "message": "You can't participate because your staking amount with Latam Nodes is not enough. If you stake this week, you will be eligible to participate in the next lottery."
                     },
                     status=403,
                 )
