@@ -30,32 +30,77 @@ class CheckAndUpdateAddress(APIView):
 
     def post(self, request, *args, **kwargs):
         address = request.data.get("address")
+        
+        try:
+            # Get the most recent jackpot to determine ticket cost
+            latest_jackpot = (
+                Jackpot.objects.order_by("-draw_date").filter(is_active=True).first()
+            )
+            if not latest_jackpot or latest_jackpot.ticket_cost is None:
+                return Response(
+                    {
+                        "message": "There is currently no available jackpot, but you can participate in the lottery once the jackpot is set."
+                    },
+                    status=HTTP_503_SERVICE_UNAVAILABLE,
+                )
+                
+            delegator = Delegator.objects.get(address=address)
 
-        # Check if the address exists in Delegator
-        if not Delegator.objects.filter(address=address).exists():
-            return Response({"message": "Address does not exist"}, status=404)
+            # Calculate the number of tickets that can be purchased`
+            if latest_jackpot.ticket_cost > 0:
+                max_tickets = float(delegator.balance) // float(latest_jackpot.ticket_cost)
+            else:
+                max_tickets = 0
+                
+            if max_tickets == 0:
+                return Response(
+                    {
+                        "message": "You can't participate because your staking amount is not enough. If you stake this week, you will be eligible to participate in the next lottery."
+                    },
+                    status=403,
+                )
 
-        delegator = get_object_or_404(Delegator, address=address)
+            total_available_ticket_count = Ticket.objects.count() * latest_jackpot.winning_percentage // 100
+            selected_ticket_count = Ticket.objects.filter(address__isnull=False).count()
+            max_tickets = min(total_available_ticket_count - selected_ticket_count, max_tickets)
+            
+            selected_tickets_by_address = Ticket.objects.filter(address=address).count()
+            max_tickets = max(max_tickets - selected_tickets_by_address, 0)
+            
+            if latest_jackpot.distributed_status and selected_tickets_by_address == 0:
+                return Response(
+                    {
+                        "message": "All remaining tickets have already been delegated. Please be sure to participate in the lottery earlier next time."
+                    },
+                    status=HTTP_503_SERVICE_UNAVAILABLE
+                )
 
-        # Get the most recent jackpot to determine ticket cost
-        latest_jackpot = (
-            Jackpot.objects.order_by("-draw_date").filter(is_active=True).first()
-        )
-        if not latest_jackpot or latest_jackpot.ticket_cost is None:
-            return Response(
-                {
-                    "message": "There is currently no available jackpot, but you can participate in the lottery once the jackpot is set."
+            # Attempt to get or create a Participant instance
+            participant, created = Participant.objects.get_or_create(
+                address=delegator.address,
+                defaults={
+                    "balance": delegator.balance,
+                    "is_active": False,
                 },
-                status=HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        # Calculate the number of tickets that can be purchased`
-        if latest_jackpot.ticket_cost > 0:
-            max_tickets = float(delegator.balance) // float(latest_jackpot.ticket_cost)
-        else:
-            max_tickets = 0
+            # If the participant was just created or is inactive, activate and assign tickets
+            if created or not participant.is_active:
+                participant.is_active = True
+                participant.balance = delegator.balance
+                participant.save()
+                self.assign_tickets(participant, max_tickets)
 
-        if max_tickets == 0:
+            serializer = ParticipantSerializer(
+                participant, data={"is_active": True}, partial=True
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=200)
+            
+            return Response(serializer.errors, status=400)
+        
+        except Delegator.DoesNotExist:
             with Session() as session:
                 try:
                     url = f"https://api-celestia.mzonder.com/cosmos/staking/v1beta1/delegations/{address}"
@@ -91,50 +136,11 @@ class CheckAndUpdateAddress(APIView):
 
             return Response(
                 {
-                    "message": "You can't participate because you haven't staked with us, or your staking amount is not enough. If you stake this week, you will be eligible to participate in the next lottery."
+                    "message": "You can't participate because you haven't staked with us. If you stake this week, you will be eligible to participate in the next lottery."
                 },
                 status=403,
             )
             
-        total_available_ticket_count = Ticket.objects.count() * latest_jackpot.winning_percentage // 100
-        selected_ticket_count = Ticket.objects.filter(address__isnull=False).count()
-        max_tickets = min(total_available_ticket_count - selected_ticket_count, max_tickets)
-        
-        selected_tickets_by_address = Ticket.objects.filter(address=address).count()
-        max_tickets = max(max_tickets - selected_tickets_by_address, 0)
-        
-        if latest_jackpot.distributed_status and selected_tickets_by_address == 0:
-            return Response(
-                {
-                    "message": "All remaining tickets have already been delegated. Please be sure to participate in the lottery earlier next time."
-                },
-                status=HTTP_503_SERVICE_UNAVAILABLE
-            )
-
-        # Attempt to get or create a Participant instance
-        participant, created = Participant.objects.get_or_create(
-            address=delegator.address,
-            defaults={
-                "balance": delegator.balance,
-                "is_active": False,
-            },
-        )
-
-        # If the participant was just created or is inactive, activate and assign tickets
-        if created or not participant.is_active:
-            participant.is_active = True
-            participant.balance = delegator.balance
-            participant.save()
-            self.assign_tickets(participant, max_tickets)
-
-        serializer = ParticipantSerializer(
-            participant, data={"is_active": True}, partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=200)
-        return Response(serializer.errors, status=400)
-
     @transaction.atomic
     def assign_tickets(self, participant, max_tickets):
         # Acquire a lock on the rows to be updated
